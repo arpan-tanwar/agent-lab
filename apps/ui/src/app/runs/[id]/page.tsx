@@ -2,8 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { runsApi, type Run, type TimelineStep } from '@/lib/api';
-import { useEffect } from 'react';
+import { runsApi, type TimelineStep } from '@/lib/api';
 
 export default function RunPage() {
   const params = useParams();
