@@ -6,13 +6,13 @@ import pino from 'pino';
 // pino-http is optional; we'll log manually per request for types simplicity
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
-import { db } from '../db/client';
+import { db } from '../db/client.js';
 import {
   workflows,
   steps as stepsTable,
   runs as runsTable,
   artifacts as artifactsTable,
-} from '../db/schema';
+} from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 
 const baseLogger = pino({ level: process.env.LOG_LEVEL || 'info' });
