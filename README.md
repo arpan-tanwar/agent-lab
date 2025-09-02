@@ -1,15 +1,19 @@
 # agent-lab
 
 ## Problem
+
 Ops work is manual/fragmented; we want agents that are observable, testable, and cheap.
 
 ## Solution
+
 A tiny agent runner + two workflows; strict JSON I/O and regression tests.
 
 ## Stack
+
 TypeScript • Hono • Drizzle • Postgres (Neon) • Railway • Next.js • shadcn • TanStack • Zustand.
 
 ## Quickstart
+
 Run API + Web locally (placeholder commands until code lands):
 
 ```bash
@@ -30,14 +34,15 @@ pnpm dev
 ```
 
 ## Demo
+
 Placeholder for a 90-sec Loom link (to be added after initial demo).
 
 ### API demo (curl)
 
-Replace YOUR_API_BASE with Railway URL once deployed.
+Live API base: https://agent-lab-production.up.railway.app
 
 ```bash
-API="https://YOUR_API_BASE" # or http://localhost:8787
+API="https://agent-lab-production.up.railway.app" # or http://localhost:8787
 
 # upsert a workflow with two steps
 curl -s -X POST "$API/workflows" -H 'content-type: application/json' -d '{
