@@ -12,10 +12,11 @@ The project is now properly configured for Vercel deployment with the following 
   "buildCommand": "pnpm build:ui",
   "outputDirectory": "apps/ui/.next",
   "installCommand": "pnpm install",
-  "framework": "nextjs",
-  "rootDirectory": "apps/ui"
+  "framework": "nextjs"
 }
 ```
+
+**Important**: The `rootDirectory` must be set in the Vercel dashboard, not in the `vercel.json` file.
 
 ### 2. Build Scripts
 
@@ -63,7 +64,7 @@ vercel
 3. Import your GitHub repository
 4. Configure the project:
    - **Framework Preset**: Next.js
-   - **Root Directory**: `apps/ui`
+   - **Root Directory**: `apps/ui` ⚠️ **CRITICAL: Set this in the dashboard**
    - **Build Command**: `pnpm build:ui`
    - **Output Directory**: `apps/ui/.next`
    - **Install Command**: `pnpm install`

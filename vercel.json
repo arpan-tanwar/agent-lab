@@ -3,6 +3,5 @@
   "buildCommand": "pnpm build:ui",
   "outputDirectory": "apps/ui/.next",
   "installCommand": "pnpm install",
-  "framework": "nextjs",
-  "rootDirectory": "apps/ui"
+  "framework": "nextjs"
 }
