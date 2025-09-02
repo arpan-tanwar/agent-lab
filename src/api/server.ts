@@ -115,4 +115,9 @@ app.get('/runs/:id', async (c) => {
   return c.json({ run, timeline });
 });
 
+app.get('/workflows', async (c) => {
+  const rows = await db.select().from(workflows);
+  return c.json({ workflows: rows });
+});
+
 export default app;

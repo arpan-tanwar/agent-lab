@@ -1,0 +1,18 @@
+[
+  { "subject": "Acme pricing inquiry", "body": "Need a quote", "from": "alice@acme.com" },
+  { "subject": "Beta trial request", "body": "free trial?", "from": "bob@beta.io" },
+  { "subject": "Gamma University project", "body": "student request", "from": "carol@gamma.edu" },
+  { "subject": "Delta info", "body": "tell me more", "from": "derek@delta.org" },
+  { "subject": "Epsilon Corp pricing", "body": "pricing details", "from": "eve@epsiloncorp.com" },
+  { "subject": "Zeta support", "body": "help", "from": "zara@zeta.net" },
+  { "subject": "Eta partnership", "body": "partnership", "from": "ed@eta.inc" },
+  {
+    "subject": "Theta competitor feedback",
+    "body": "we are a competitor",
+    "from": "tom@theta.com"
+  },
+  { "subject": "Iota internship", "body": "student", "from": "ivy@iota.edu" },
+  { "subject": "Kappa enterprise RFP", "body": "RFP", "from": "kate@kappa.corp" },
+  { "subject": "Lambda vague", "body": "hi", "from": "leo@lambda.com" },
+  { "subject": "Mu quote", "body": "need pricing", "from": "mia@mu.com" }
+]
