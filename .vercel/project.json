@@ -1,0 +1,11 @@
+{
+  "orgId": "your-org-id",
+  "projectId": "your-project-id",
+  "settings": {
+    "buildCommand": "pnpm build:ui",
+    "outputDirectory": "apps/ui/.next",
+    "installCommand": "pnpm install",
+    "framework": "nextjs",
+    "rootDirectory": "apps/ui"
+  }
+}
