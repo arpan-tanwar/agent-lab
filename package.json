@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "workspaces": ["apps/*"],
   "scripts": {
     "dev": "tsx src/api/index.ts",
     "build": "tsc -p tsconfig.json",

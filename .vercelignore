@@ -1,0 +1,9 @@
+src/
+tests/
+drizzle/
+*.md
+.env*
+.gitignore
+eslint.config.mjs
+tsconfig.json
+drizzle.config.ts
