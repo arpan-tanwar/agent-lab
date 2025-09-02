@@ -13,7 +13,7 @@ importers:
         version: 1.19.1(hono@4.9.5)
       drizzle-orm:
         specifier: ^0.44.5
-        version: 0.44.5(pg@8.16.3)
+        version: 0.44.5(@types/pg@8.15.5)(pg@8.16.3)
       hono:
         specifier: ^4.9.5
         version: 4.9.5
@@ -39,12 +39,18 @@ importers:
       '@types/node':
         specifier: ^24.3.0
         version: 24.3.0
+      '@types/pg':
+        specifier: ^8.15.5
+        version: 8.15.5
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.42.0
         version: 8.42.0(@typescript-eslint/parser@8.42.0(eslint@9.34.0)(typescript@5.9.2))(eslint@9.34.0)(typescript@5.9.2)
       '@typescript-eslint/parser':
         specifier: ^8.42.0
         version: 8.42.0(eslint@9.34.0)(typescript@5.9.2)
+      dotenv:
+        specifier: ^17.2.1
+        version: 17.2.1
       drizzle-kit:
         specifier: ^0.31.4
         version: 0.31.4
@@ -570,6 +576,9 @@ packages:
   '@types/node@24.3.0':
     resolution: {integrity: sha512-aPTXCrfwnDLj4VvXrm+UUCQjNEvJgNA8s5F1cvwQU+3KNltTOkBm1j30uNLyqqPNe7gE3KFzImYoZEfLhp4Yow==}
 
+  '@types/pg@8.15.5':
+    resolution: {integrity: sha512-LF7lF6zWEKxuT3/OR8wAZGzkg4ENGXFNyiV/JeOt9z5B+0ZVwbql9McqX5c/WStFq1GaGso7H1AzP/qSzmlCKQ==}
+
   '@typescript-eslint/eslint-plugin@8.42.0':
     resolution: {integrity: sha512-Aq2dPqsQkxHOLfb2OPv43RnIvfj05nw8v/6n3B2NABIPpHnjQnaLo9QGMTvml+tv4korl/Cjfrb/BYhoL8UUTQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
@@ -751,6 +760,10 @@ packages:
 
   deep-is@0.1.4:
     resolution: {integrity: sha512-oIPzksmTg4/MriiaYGO+okXDT7ztn/w3Eptv/+gSIdMdKsJo0u4CfYNFJPy+4SKMuCqGw2wxnA+URMg3t8a/bQ==}
+
+  dotenv@17.2.1:
+    resolution: {integrity: sha512-kQhDYKZecqnM0fCnzI5eIv5L4cAe/iRI+HqMbO/hbRdTAeXDG+M9FjipUxNfbARuEg4iHIbhnhs78BCHNbSxEQ==}
+    engines: {node: '>=12'}
 
   drizzle-kit@0.31.4:
     resolution: {integrity: sha512-tCPWVZWZqWVx2XUsVpJRnH9Mx0ClVOf5YUHerZ5so1OKSlqww4zy1R5ksEdGRcO3tM3zj0PYN6V48TbQCL1RfA==}
@@ -1789,6 +1802,12 @@ snapshots:
     dependencies:
       undici-types: 7.10.0
 
+  '@types/pg@8.15.5':
+    dependencies:
+      '@types/node': 24.3.0
+      pg-protocol: 1.10.3
+      pg-types: 2.2.0
+
   '@typescript-eslint/eslint-plugin@8.42.0(@typescript-eslint/parser@8.42.0(eslint@9.34.0)(typescript@5.9.2))(eslint@9.34.0)(typescript@5.9.2)':
     dependencies:
       '@eslint-community/regexpp': 4.12.1
@@ -2005,6 +2024,8 @@ snapshots:
 
   deep-is@0.1.4: {}
 
+  dotenv@17.2.1: {}
+
   drizzle-kit@0.31.4:
     dependencies:
       '@drizzle-team/brocli': 0.10.2
@@ -2014,8 +2035,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.44.5(pg@8.16.3):
+  drizzle-orm@0.44.5(@types/pg@8.15.5)(pg@8.16.3):
     optionalDependencies:
+      '@types/pg': 8.15.5
       pg: 8.16.3
 
   es-module-lexer@1.7.0: {}

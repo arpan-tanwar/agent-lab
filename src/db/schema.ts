@@ -1,4 +1,4 @@
-import { pgTable, serial, text, varchar, integer, jsonb, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, integer, jsonb, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 export const workflows = pgTable('workflows', {
@@ -9,7 +9,9 @@ export const workflows = pgTable('workflows', {
 
 export const steps = pgTable('steps', {
   id: serial('id').primaryKey(),
-  workflowId: uuid('workflow_id').notNull().references(() => workflows.id, { onDelete: 'cascade' }),
+  workflowId: uuid('workflow_id')
+    .notNull()
+    .references(() => workflows.id, { onDelete: 'cascade' }),
   type: varchar('type', { length: 64 }).notNull(),
   order: integer('order').notNull(),
   config: jsonb('config').notNull().default({}),
@@ -17,7 +19,9 @@ export const steps = pgTable('steps', {
 
 export const runs = pgTable('runs', {
   id: uuid('id').defaultRandom().primaryKey(),
-  workflowId: uuid('workflow_id').notNull().references(() => workflows.id, { onDelete: 'set null' }),
+  workflowId: uuid('workflow_id')
+    .notNull()
+    .references(() => workflows.id, { onDelete: 'set null' }),
   status: varchar('status', { length: 32 }).notNull().default('pending'),
   startedAt: timestamp('started_at', { mode: 'date' }),
   finishedAt: timestamp('finished_at', { mode: 'date' }),
@@ -26,8 +30,12 @@ export const runs = pgTable('runs', {
 
 export const artifacts = pgTable('artifacts', {
   id: serial('id').primaryKey(),
-  runId: uuid('run_id').notNull().references(() => runs.id, { onDelete: 'cascade' }),
-  stepId: integer('step_id').notNull().references(() => steps.id, { onDelete: 'cascade' }),
+  runId: uuid('run_id')
+    .notNull()
+    .references(() => runs.id, { onDelete: 'cascade' }),
+  stepId: integer('step_id')
+    .notNull()
+    .references(() => steps.id, { onDelete: 'cascade' }),
   kind: varchar('kind', { length: 64 }).notNull(),
   data: jsonb('data').notNull().default({}),
 });
