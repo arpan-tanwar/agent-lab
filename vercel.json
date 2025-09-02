@@ -1,9 +1,7 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "apps/ui/package.json",
-      "use": "@vercel/next"
-    }
-  ]
+  "buildCommand": "cd apps/ui && pnpm install && pnpm build",
+  "outputDirectory": "apps/ui/.next",
+  "installCommand": "pnpm install",
+  "framework": "nextjs"
 }
