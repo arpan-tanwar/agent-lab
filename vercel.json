@@ -1,7 +1,0 @@
-{
-  "version": 2,
-  "buildCommand": "pnpm build:ui",
-  "outputDirectory": "apps/ui/.next",
-  "installCommand": "pnpm install",
-  "framework": "nextjs"
-}
