@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { runs as runsTable } from '../db/schema.js';
 import { workflowExecutor } from './executor.js';
+import { config as appConfig } from '../config/index.js';
 import pino from 'pino';
 
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
@@ -9,7 +10,7 @@ const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 export class WorkflowProcessor {
   private isProcessing = false;
   private processingInterval: NodeJS.Timeout | null = null;
-  private readonly POLL_INTERVAL = 5000; // 5 seconds
+  private readonly POLL_INTERVAL = appConfig.processing.pollInterval;
 
   start(): void {
     if (this.isProcessing) {
@@ -61,7 +62,7 @@ export class WorkflowProcessor {
       logger.info({ count: pendingRuns.length }, 'Found pending runs');
 
       // Process runs concurrently (but limit concurrency)
-      const concurrency = 3;
+      const concurrency = appConfig.processing.concurrency;
       const chunks = this.chunkArray(pendingRuns, concurrency);
 
       for (const chunk of chunks) {

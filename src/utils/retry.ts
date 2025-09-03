@@ -1,4 +1,5 @@
 import pino from 'pino';
+import { config as appConfig } from '../config/index.js';
 
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 
@@ -35,9 +36,9 @@ export async function withRetry<T>(
   requestId?: string,
 ): Promise<T> {
   const {
-    maxRetries = 3,
-    baseDelay = 1000,
-    maxDelay = 30000,
+    maxRetries = appConfig.retry.maxRetries,
+    baseDelay = appConfig.retry.baseDelay,
+    maxDelay = appConfig.retry.maxDelay,
     jitter = true,
     retryCondition = (error: unknown) => {
       // Retry on 429 (rate limit) and 5xx errors
@@ -91,7 +92,7 @@ export async function withRetry<T>(
       // Calculate delay with exponential backoff and jitter
       const exponentialDelay = baseDelay * Math.pow(2, attempt);
       const delay = Math.min(exponentialDelay, maxDelay);
-      const jitterAmount = jitter ? Math.random() * 0.1 * delay : 0;
+      const jitterAmount = jitter ? Math.random() * appConfig.retry.jitterFactor * delay : 0;
       const finalDelay = Math.floor(delay + jitterAmount);
 
       const errorWithStatus = error as ErrorWithStatus;

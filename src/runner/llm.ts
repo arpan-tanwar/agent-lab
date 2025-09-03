@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import pino from 'pino';
+import { config as appConfig } from '../config/index.js';
 
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 
@@ -28,7 +29,7 @@ export class GeminiProvider {
     }
 
     this.genAI = new GoogleGenerativeAI(key);
-    this.model = 'gemini-2.0-flash'; // Free model
+    this.model = appConfig.llm.defaultModel;
   }
 
   async callLLM(config: LLMConfig, input?: unknown): Promise<LLMResponse> {
@@ -48,8 +49,8 @@ export class GeminiProvider {
       const model = this.genAI.getGenerativeModel({
         model: config.model || this.model,
         generationConfig: {
-          temperature: config.temperature || 0.1,
-          maxOutputTokens: config.maxTokens || 1000,
+          temperature: config.temperature || appConfig.llm.defaultTemperature,
+          maxOutputTokens: config.maxTokens || appConfig.llm.defaultMaxTokens,
         },
       });
 
@@ -115,14 +116,7 @@ export class GeminiProvider {
   }
 
   private getCostPerToken(model: string): number {
-    // Current Gemini pricing (as of 2024)
-    const pricing: Record<string, number> = {
-      'gemini-1.5-flash': 0, // Free
-      'gemini-1.5-pro': 0.00000125, // $1.25 per 1M tokens
-      'gemini-1.0-pro': 0.00000125,
-    };
-
-    return pricing[model] || 0;
+    return appConfig.llm.costPerToken[model] || 0;
   }
 
   async validateConfig(config: LLMConfig): Promise<boolean> {

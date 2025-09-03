@@ -1,4 +1,5 @@
 import pino from 'pino';
+import { config as appConfig } from '../config/index.js';
 
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 
@@ -116,7 +117,7 @@ export class ToolRegistry {
     const body = config.body || (input as Record<string, unknown>)?.body;
 
     const controller = new AbortController();
-    const timeout = config.timeout || 30000; // 30 seconds default
+    const timeout = config.timeout || appConfig.tools.httpTimeout;
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
@@ -153,7 +154,7 @@ export class ToolRegistry {
     }
 
     // Simulate email sending
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, appConfig.tools.emailDelay));
 
     logger.info({ to, subject }, 'Email sent');
 
@@ -175,7 +176,7 @@ export class ToolRegistry {
     }
 
     // Simulate Slack API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, appConfig.tools.slackDelay));
 
     logger.info({ channel, message }, 'Slack message sent');
 
@@ -197,7 +198,7 @@ export class ToolRegistry {
     }
 
     // Simulate CRM API call
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    await new Promise((resolve) => setTimeout(resolve, appConfig.tools.crmDelay));
 
     const recordId = `crm_${Date.now()}`;
 
@@ -221,7 +222,7 @@ export class ToolRegistry {
     }
 
     // Simulate data processing
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, appConfig.tools.processDelay));
 
     let processedData;
     switch (operation) {
