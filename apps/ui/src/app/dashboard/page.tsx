@@ -7,7 +7,6 @@ import {
   TrendingDown,
   DollarSign,
   Clock,
-  AlertTriangle,
   CheckCircle,
   XCircle,
   Activity,

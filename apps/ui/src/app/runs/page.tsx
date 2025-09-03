@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { type Run } from '@/lib/api';
 import Link from 'next/link';
-import { Activity, CheckCircle, XCircle, Clock, RotateCcw, Filter } from 'lucide-react';
+import { Activity, CheckCircle, XCircle, Clock, RotateCcw } from 'lucide-react';
 import { Header } from '@/components/header';
 
 export default function RunsPage() {

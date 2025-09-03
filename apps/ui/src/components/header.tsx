@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Activity, BarChart3, Home, Settings, TestTube, Workflow } from 'lucide-react';
+import { Activity, BarChart3, Home, TestTube, Workflow } from 'lucide-react';
 import { ThemeToggle } from './theme-toggle';
 
 const navigation = [
