@@ -11,7 +11,11 @@ export default function RunsPage() {
   const [filter, setFilter] = useState<'all' | 'running' | 'completed' | 'failed'>('all');
   const queryClient = useQueryClient();
 
-  const { data: runsData, isLoading, error } = useQuery({
+  const {
+    data: runsData,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['runs'],
     queryFn: async () => {
       const response = await runsApi.list();

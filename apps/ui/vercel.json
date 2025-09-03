@@ -5,7 +5,7 @@
   "installCommand": "pnpm install",
   "devCommand": "pnpm dev",
   "env": {
-    "NEXT_PUBLIC_API_BASE": "@next_public_api_base"
+    "NEXT_PUBLIC_API_BASE": "https://agent-lab-production.up.railway.app"
   },
   "functions": {
     "app/**/*.tsx": {
