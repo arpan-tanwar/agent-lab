@@ -133,19 +133,25 @@ export default function RunPage() {
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="font-medium mb-2">Per Step</h3>
                 <div className="space-y-2">
-                  {run.metrics.perStep.map((step, idx) => (
-                    <div key={idx} className="text-sm">
-                      <div className="font-medium">{step.stepKey}</div>
-                      <div className="text-gray-600">
-                        {step.ms || 0}ms • {step.tokens || 0} tokens • $
-                        {step.costEstimateUsd?.toFixed(4) || '0.0000'}
-                        {step.attempts && step.attempts > 1 && (
-                          <span className="text-orange-600"> • {step.attempts} attempts</span>
-                        )}
-                        {step.errorTag && <span className="text-red-600"> • {step.errorTag}</span>}
+                  {run.metrics?.perStep?.length ? (
+                    run.metrics.perStep.map((step, idx) => (
+                      <div key={idx} className="text-sm">
+                        <div className="font-medium">{step.stepKey}</div>
+                        <div className="text-gray-600">
+                          {step.ms || 0}ms • {step.tokens || 0} tokens • $
+                          {step.costEstimateUsd?.toFixed(4) || '0.0000'}
+                          {step.attempts && step.attempts > 1 && (
+                            <span className="text-orange-600"> • {step.attempts} attempts</span>
+                          )}
+                          {step.errorTag && (
+                            <span className="text-red-600"> • {step.errorTag}</span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <div className="text-sm text-gray-500">No step metrics available</div>
+                  )}
                 </div>
               </div>
             </div>
