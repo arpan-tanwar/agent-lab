@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { workflowsApi, type Workflow } from '@/lib/api';
+import { Header } from '@/components/header';
+import { Plus, Play, Workflow as WorkflowIcon } from 'lucide-react';
 
 export default function WorkflowsPage() {
   const [showCreate, setShowCreate] = useState(false);
@@ -32,89 +34,130 @@ export default function WorkflowsPage() {
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Workflows</h1>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          Create Workflow
-        </button>
-      </div>
+    <div className="min-h-screen bg-background">
+      <Header />
 
-      {showCreate && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-96">
-            <h2 className="text-xl font-semibold mb-4">Create Workflow</h2>
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">Name</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full border border-gray-300 rounded px-3 py-2"
-                  required
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">Version</label>
-                <input
-                  type="number"
-                  value={formData.version}
-                  onChange={(e) => setFormData({ ...formData, version: parseInt(e.target.value) })}
-                  className="w-full border border-gray-300 rounded px-3 py-2"
-                  min="1"
-                />
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={createMutation.isPending}
-                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {createMutation.isPending ? 'Creating...' : 'Create'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowCreate(false)}
-                  className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+      <main className="container mx-auto p-6">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Workflows</h1>
+            <p className="text-muted-foreground">Create and manage your automation workflows</p>
           </div>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Create Workflow
+          </button>
         </div>
-      )}
 
-      {isLoading ? (
-        <div>Loading workflows...</div>
-      ) : (
-        <div className="grid gap-4">
-          {workflows?.map((workflow: Workflow) => (
-            <div key={workflow.id} className="border border-gray-200 rounded-lg p-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-semibold">{workflow.name}</h3>
-                  <p className="text-sm text-gray-600">Version {workflow.version}</p>
-                  <p className="text-xs text-gray-500">ID: {workflow.id}</p>
+        {showCreate && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+            <div className="bg-card border border-border p-6 rounded-xl w-96 shadow-lg animate-scale-in">
+              <h2 className="text-xl font-semibold mb-4">Create Workflow</h2>
+              <form onSubmit={handleSubmit}>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-2">Name</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full border border-input rounded-lg px-3 py-2 bg-background focus:ring-2 focus:ring-ring focus:border-transparent"
+                    required
+                  />
                 </div>
-                <button
-                  onClick={() => {
-                    // TODO: Start run
-                    console.log('Start run for', workflow.id);
-                  }}
-                  className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
-                >
-                  Run
-                </button>
-              </div>
+                <div className="mb-6">
+                  <label className="block text-sm font-medium mb-2">Version</label>
+                  <input
+                    type="number"
+                    value={formData.version}
+                    onChange={(e) =>
+                      setFormData({ ...formData, version: parseInt(e.target.value) })
+                    }
+                    className="w-full border border-input rounded-lg px-3 py-2 bg-background focus:ring-2 focus:ring-ring focus:border-transparent"
+                    min="1"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    disabled={createMutation.isPending}
+                    className="flex-1 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                  >
+                    {createMutation.isPending ? 'Creating...' : 'Create'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreate(false)}
+                    className="flex-1 bg-muted text-muted-foreground px-4 py-2 rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        )}
+
+        {isLoading ? (
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-24 bg-muted rounded-xl animate-pulse"></div>
+            ))}
+          </div>
+        ) : workflows && workflows.length > 0 ? (
+          <div className="grid gap-4">
+            {workflows.map((workflow: Workflow, index) => (
+              <div
+                key={workflow.id}
+                className="group p-6 rounded-xl border border-border bg-card hover:shadow-lg transition-all duration-300 hover:scale-[1.02] animate-slide-up"
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <WorkflowIcon className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold">{workflow.name}</h3>
+                        <p className="text-sm text-muted-foreground">Version {workflow.version}</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground font-mono">ID: {workflow.id}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      // TODO: Start run
+                      console.log('Start run for', workflow.id);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition-colors"
+                  >
+                    <Play className="h-4 w-4" />
+                    Run
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mx-auto mb-4">
+              <WorkflowIcon className="h-8 w-8" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">No workflows found</h3>
+            <p className="text-muted-foreground mb-4">Create your first workflow to get started</p>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Create Workflow
+            </button>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
