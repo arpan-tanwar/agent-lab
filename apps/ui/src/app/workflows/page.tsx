@@ -6,6 +6,14 @@ import { workflowsApi, type Workflow } from '@/lib/api';
 import { Header } from '@/components/header';
 import { Plus, Play, Workflow as WorkflowIcon, XCircle, RotateCcw } from 'lucide-react';
 
+interface ApiError {
+  response?: {
+    data?: {
+      error?: string;
+    };
+  };
+}
+
 export default function WorkflowsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [formData, setFormData] = useState({ name: '', version: 1 });
@@ -124,7 +132,7 @@ export default function WorkflowsPage() {
             </div>
             <h3 className="text-lg font-semibold mb-2">Failed to load workflows</h3>
             <p className="text-muted-foreground mb-4">
-              {(error as any)?.response?.data?.error || 'Unable to connect to the server'}
+              {(error as ApiError)?.response?.data?.error || 'Unable to connect to the server'}
             </p>
             <button
               onClick={() => window.location.reload()}
