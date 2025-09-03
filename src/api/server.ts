@@ -13,7 +13,7 @@ import {
   runs as runsTable,
   artifacts as artifactsTable,
 } from '../db/schema.js';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { createRetryLogger } from '../utils/retry.js';
 
 const baseLogger = pino({ level: process.env.LOG_LEVEL || 'info' });
@@ -172,6 +172,24 @@ app.post('/automation/lead', async (c) => {
     });
   } catch (error) {
     baseLogger.error({ error }, 'Failed to process lead automation');
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+app.get('/runs', async (c) => {
+  const requestId = c.get('requestId');
+  const retryLogger = createRetryLogger(requestId);
+
+  try {
+    const runs = await db.select().from(runsTable).orderBy(desc(runsTable.startedAt));
+
+    retryLogger.info('Retrieved all runs', { count: runs.length });
+
+    return c.json({ runs });
+  } catch (error) {
+    retryLogger.error('Failed to retrieve runs', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return c.json({ error: 'Internal server error' }, 500);
   }
 });

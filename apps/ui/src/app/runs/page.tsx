@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { type Run } from '@/lib/api';
+import { runsApi, type Run } from '@/lib/api';
 import Link from 'next/link';
 import { Activity, CheckCircle, XCircle, Clock, RotateCcw } from 'lucide-react';
 import { Header } from '@/components/header';
@@ -11,143 +11,20 @@ export default function RunsPage() {
   const [filter, setFilter] = useState<'all' | 'running' | 'completed' | 'failed'>('all');
   const queryClient = useQueryClient();
 
-  // Mock data for now - in a real app, you'd have an API endpoint to list runs
-  const { data: runs, isLoading } = useQuery({
-    queryKey: ['runs', filter],
-    queryFn: async (): Promise<Run[]> => {
-      // Mock data including some failed runs for demonstration
-      const mockRuns: Run[] = [
-        {
-          id: 'run-1',
-          workflowId: 'wf-1',
-          status: 'completed',
-          startedAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-          finishedAt: new Date(Date.now() - 1000 * 60 * 4).toISOString(),
-          metrics: {
-            totalMs: 1200,
-            totalTokens: 1247,
-            costEstimateUsd: 0.0034,
-            perStep: [
-              {
-                stepKey: 'parseEmail',
-                kind: 'llm',
-                ms: 234,
-                tokens: 156,
-                costEstimateUsd: 0.0004,
-                attempts: 1,
-              },
-              {
-                stepKey: 'enrichCompany',
-                kind: 'tool',
-                ms: 89,
-                tokens: 0,
-                costEstimateUsd: 0.0001,
-                attempts: 1,
-              },
-              {
-                stepKey: 'scoreLead',
-                kind: 'tool',
-                ms: 45,
-                tokens: 0,
-                costEstimateUsd: 0.0001,
-                attempts: 1,
-              },
-              {
-                stepKey: 'createCRMRecord',
-                kind: 'tool',
-                ms: 234,
-                tokens: 0,
-                costEstimateUsd: 0.0001,
-                attempts: 1,
-              },
-              {
-                stepKey: 'notifySlack',
-                kind: 'tool',
-                ms: 567,
-                tokens: 0,
-                costEstimateUsd: 0.0001,
-                attempts: 1,
-              },
-            ],
-          },
-        },
-        {
-          id: 'run-2',
-          workflowId: 'wf-1',
-          status: 'failed',
-          startedAt: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
-          finishedAt: new Date(Date.now() - 1000 * 60 * 9).toISOString(),
-          metrics: {
-            totalMs: 800,
-            totalTokens: 156,
-            costEstimateUsd: 0.0004,
-            perStep: [
-              {
-                stepKey: 'parseEmail',
-                kind: 'llm',
-                ms: 234,
-                tokens: 156,
-                costEstimateUsd: 0.0004,
-                attempts: 1,
-              },
-              {
-                stepKey: 'enrichCompany',
-                kind: 'tool',
-                ms: 89,
-                tokens: 0,
-                costEstimateUsd: 0.0001,
-                attempts: 1,
-              },
-              {
-                stepKey: 'scoreLead',
-                kind: 'tool',
-                ms: 45,
-                tokens: 0,
-                costEstimateUsd: 0.0001,
-                attempts: 1,
-              },
-              {
-                stepKey: 'createCRMRecord',
-                kind: 'tool',
-                ms: 234,
-                tokens: 0,
-                costEstimateUsd: 0.0001,
-                attempts: 3,
-                errorTag: 'API_TIMEOUT',
-              },
-              {
-                stepKey: 'notifySlack',
-                kind: 'tool',
-                ms: 0,
-                tokens: 0,
-                costEstimateUsd: 0,
-                attempts: 0,
-              },
-            ],
-          },
-        },
-        {
-          id: 'run-3',
-          workflowId: 'wf-1',
-          status: 'running',
-          startedAt: new Date(Date.now() - 1000 * 30).toISOString(),
-          metrics: {
-            totalMs: 300,
-            totalTokens: 0,
-            costEstimateUsd: 0,
-            perStep: [],
-          },
-        },
-      ];
-
-      return mockRuns.filter((run) => filter === 'all' || run.status === filter);
+  const { data: runsData, isLoading, error } = useQuery({
+    queryKey: ['runs'],
+    queryFn: async () => {
+      const response = await runsApi.list();
+      return response.data;
     },
   });
+
+  const runs = runsData?.runs || [];
 
   const retryMutation = useMutation({
     mutationFn: async (runId: string) => {
       const response = await fetch(
-        `https://agent-lab-production.up.railway.app/runs/${runId}/retry`,
+        `${process.env.NEXT_PUBLIC_API_BASE || 'https://agent-lab-production.up.railway.app'}/runs/${runId}/retry`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -189,7 +66,7 @@ export default function RunsPage() {
     }
   };
 
-  const filteredRuns = runs?.filter((run: Run) => filter === 'all' || run.status === filter) || [];
+  const filteredRuns = runs.filter((run: Run) => filter === 'all' || run.status === filter);
 
   return (
     <div className="min-h-screen bg-background">
@@ -224,6 +101,21 @@ export default function RunsPage() {
             {[...Array(3)].map((_, i) => (
               <div key={i} className="h-24 bg-muted rounded-xl animate-pulse"></div>
             ))}
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <XCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Failed to load runs</h3>
+            <p className="text-muted-foreground mb-4">
+              {(error as { message?: string })?.message || 'Unable to connect to the server'}
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Retry
+            </button>
           </div>
         ) : filteredRuns.length === 0 ? (
           <div className="text-center py-12">

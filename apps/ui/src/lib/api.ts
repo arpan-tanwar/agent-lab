@@ -49,6 +49,7 @@ export const workflowsApi = {
 };
 
 export const runsApi = {
+  list: () => api.get<{ runs: Run[] }>('/runs'),
   start: (workflowId: string) => api.post<{ runId: string }>(`/runs/${workflowId}/start`),
   get: (runId: string) => api.get<{ run: Run; timeline: TimelineStep[] }>(`/runs/${runId}`),
 };
