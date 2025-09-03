@@ -184,18 +184,18 @@ export default function RunsPage() {
                             <div className="text-muted-foreground">
                               <div className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
-                                {run.metrics.totalMs}ms
+                                {run.metrics?.totalMs || 0}ms
                               </div>
                               <div className="flex items-center gap-1">
                                 <Activity className="h-3 w-3" />
-                                {run.metrics.totalTokens} tokens
+                                {run.metrics?.totalTokens || 0} tokens
                               </div>
                               <div className="flex items-center gap-1">
                                 <span>$</span>
-                                {run.metrics.costEstimateUsd.toFixed(4)}
+                                {run.metrics?.costEstimateUsd?.toFixed(4) || '0.0000'}
                               </div>
                             </div>
-                            {run.metrics.perStep.some(
+                            {run.metrics?.perStep?.some(
                               (step) => step.attempts && step.attempts > 1,
                             ) && (
                               <div className="text-orange-600 text-xs bg-orange-500/10 px-2 py-1 rounded">

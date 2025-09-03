@@ -89,9 +89,9 @@ export default function RunPage() {
                 </div>
 
                 <div className="grid grid-cols-3 gap-4 text-sm text-gray-600 mb-3">
-                  <div>Tokens: {step.metrics.tokens}</div>
-                  <div>Time: {step.metrics.ms}ms</div>
-                  <div>Cost: ${step.metrics.cost_estimate.toFixed(4)}</div>
+                  <div>Tokens: {step.metrics?.tokens || 0}</div>
+                  <div>Time: {step.metrics?.ms || 0}ms</div>
+                  <div>Cost: ${step.metrics?.cost_estimate?.toFixed(4) || '0.0000'}</div>
                 </div>
 
                 {step.inputs != null && (
@@ -124,9 +124,9 @@ export default function RunPage() {
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="font-medium mb-2">Overall</h3>
                 <div className="space-y-2 text-sm">
-                  <div>Total Time: {run.metrics.totalMs}ms</div>
-                  <div>Total Tokens: {run.metrics.totalTokens}</div>
-                  <div>Total Cost: ${run.metrics.costEstimateUsd.toFixed(4)}</div>
+                  <div>Total Time: {run.metrics?.totalMs || 0}ms</div>
+                  <div>Total Tokens: {run.metrics?.totalTokens || 0}</div>
+                  <div>Total Cost: ${run.metrics?.costEstimateUsd?.toFixed(4) || '0.0000'}</div>
                 </div>
               </div>
 
@@ -137,7 +137,8 @@ export default function RunPage() {
                     <div key={idx} className="text-sm">
                       <div className="font-medium">{step.stepKey}</div>
                       <div className="text-gray-600">
-                        {step.ms}ms • {step.tokens} tokens • ${step.costEstimateUsd.toFixed(4)}
+                        {step.ms || 0}ms • {step.tokens || 0} tokens • $
+                        {step.costEstimateUsd?.toFixed(4) || '0.0000'}
                         {step.attempts && step.attempts > 1 && (
                           <span className="text-orange-600"> • {step.attempts} attempts</span>
                         )}
