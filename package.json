@@ -10,7 +10,7 @@
     "build:ui": "cd apps/ui && pnpm install && pnpm build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
-    "test": "vitest run --reporter=basic",
+    "test": "vitest run",
     "migrate": "drizzle-kit generate && drizzle-kit migrate",
     "start": "node dist/src/api/index.js",
     "prestart": "pnpm build"
