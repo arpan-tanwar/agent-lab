@@ -15,6 +15,7 @@ import {
 } from '../db/schema.js';
 import { eq, desc } from 'drizzle-orm';
 import { createRetryLogger } from '../utils/retry.js';
+import { workflowProcessor } from '../runner/processor.js';
 
 const baseLogger = pino({ level: process.env.LOG_LEVEL || 'info' });
 
@@ -371,5 +372,31 @@ app.get('/runs/failed', async (c) => {
     return c.json({ error: 'Internal server error' }, 500);
   }
 });
+
+// Trigger workflow processing endpoint (for testing)
+app.post('/process', async (c) => {
+  const requestId = c.get('requestId');
+  const retryLogger = createRetryLogger(requestId);
+
+  try {
+    await workflowProcessor.triggerProcessing();
+
+    retryLogger.info('Workflow processing triggered');
+
+    return c.json({
+      success: true,
+      message: 'Workflow processing triggered',
+      status: workflowProcessor.getStatus(),
+    });
+  } catch (error) {
+    retryLogger.error('Failed to trigger workflow processing', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// Start the workflow processor when the server starts
+workflowProcessor.start();
 
 export default app;
