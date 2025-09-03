@@ -36,54 +36,147 @@ export default function DashboardPage() {
   const { data: metrics, isLoading } = useQuery({
     queryKey: ['dashboard-metrics', timeRange],
     queryFn: async (): Promise<DashboardMetrics> => {
-      // Mock data for now - in production, you'd have a dedicated metrics endpoint
-      const mockMetrics: DashboardMetrics = {
-        totalRuns: 156,
-        successfulRuns: 142,
-        failedRuns: 14,
-        averageTokensPerRun: 1247,
-        averageCostPerRun: 0.0034,
-        p95Latency: 2847,
-        averageLatency: 1234,
-        stepMetrics: [
-          {
-            stepName: 'parseEmail',
-            averageTokens: 156,
-            averageCost: 0.0004,
-            p95Latency: 234,
-            failureRate: 0.02,
-          },
-          {
-            stepName: 'enrichCompany',
-            averageTokens: 0,
-            averageCost: 0.0001,
-            p95Latency: 89,
-            failureRate: 0.01,
-          },
-          {
-            stepName: 'scoreLead',
-            averageTokens: 0,
-            averageCost: 0.0001,
-            p95Latency: 45,
-            failureRate: 0.005,
-          },
-          {
-            stepName: 'createCRMRecord',
-            averageTokens: 0,
-            averageCost: 0.0001,
-            p95Latency: 234,
-            failureRate: 0.08,
-          },
-          {
-            stepName: 'notifySlack',
-            averageTokens: 0,
-            averageCost: 0.0001,
-            p95Latency: 567,
-            failureRate: 0.12,
-          },
-        ],
-      };
-      return mockMetrics;
+      try {
+        // Fetch real metrics from the API
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE || 'https://agent-lab-production.up.railway.app'}/metrics?timeRange=${timeRange}`,
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch metrics');
+        }
+
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Error fetching metrics:', error);
+
+        // Fallback to calculated metrics from runs data
+        const runsResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE || 'https://agent-lab-production.up.railway.app'}/runs`,
+        );
+
+        if (!runsResponse.ok) {
+          throw new Error('Failed to fetch runs data');
+        }
+
+        const runsData = await runsResponse.json();
+        const runs = runsData.runs || [];
+
+        // Calculate metrics from runs data
+        const totalRuns = runs.length;
+        const successfulRuns = runs.filter((run: any) => run.status === 'completed').length;
+        const failedRuns = runs.filter((run: any) => run.status === 'failed').length;
+
+        const runsWithMetrics = runs.filter((run: any) => run.metrics && run.metrics.totalTokens);
+        const averageTokensPerRun =
+          runsWithMetrics.length > 0
+            ? Math.round(
+                runsWithMetrics.reduce(
+                  (sum: number, run: any) => sum + (run.metrics.totalTokens || 0),
+                  0,
+                ) / runsWithMetrics.length,
+              )
+            : 0;
+
+        const averageCostPerRun =
+          runsWithMetrics.length > 0
+            ? runsWithMetrics.reduce(
+                (sum: number, run: any) => sum + (run.metrics.costEstimateUsd || 0),
+                0,
+              ) / runsWithMetrics.length
+            : 0;
+
+        const latencies = runs
+          .filter((run: any) => run.metrics && run.metrics.totalMs)
+          .map((run: any) => run.metrics.totalMs)
+          .sort((a: number, b: number) => a - b);
+
+        const averageLatency =
+          latencies.length > 0
+            ? Math.round(
+                latencies.reduce((sum: number, latency: number) => sum + latency, 0) /
+                  latencies.length,
+              )
+            : 0;
+
+        const p95Latency =
+          latencies.length > 0 ? latencies[Math.floor(latencies.length * 0.95)] : 0;
+
+        // Calculate step metrics from timeline data
+        const stepMetrics: Array<{
+          stepName: string;
+          averageTokens: number;
+          averageCost: number;
+          p95Latency: number;
+          failureRate: number;
+        }> = [];
+
+        // Group steps by type and calculate averages
+        const stepGroups: Record<string, any[]> = {};
+        runs.forEach((run: any) => {
+          if (run.timeline) {
+            run.timeline.forEach((step: any) => {
+              if (!stepGroups[step.type]) {
+                stepGroups[step.type] = [];
+              }
+              stepGroups[step.type].push(step);
+            });
+          }
+        });
+
+        Object.entries(stepGroups).forEach(([stepName, steps]) => {
+          const completedSteps = steps.filter((step: any) => step.status === 'completed');
+          const failedSteps = steps.filter((step: any) => step.status === 'failed');
+
+          const averageTokens =
+            completedSteps.length > 0
+              ? Math.round(
+                  completedSteps.reduce(
+                    (sum: number, step: any) => sum + (step.metrics?.tokens || 0),
+                    0,
+                  ) / completedSteps.length,
+                )
+              : 0;
+
+          const averageCost =
+            completedSteps.length > 0
+              ? completedSteps.reduce(
+                  (sum: number, step: any) => sum + (step.metrics?.cost_estimate || 0),
+                  0,
+                ) / completedSteps.length
+              : 0;
+
+          const stepLatencies = completedSteps
+            .map((step: any) => step.metrics?.ms || 0)
+            .filter((latency: number) => latency > 0)
+            .sort((a: number, b: number) => a - b);
+
+          const p95Latency =
+            stepLatencies.length > 0 ? stepLatencies[Math.floor(stepLatencies.length * 0.95)] : 0;
+
+          const failureRate = steps.length > 0 ? failedSteps.length / steps.length : 0;
+
+          stepMetrics.push({
+            stepName,
+            averageTokens,
+            averageCost,
+            p95Latency,
+            failureRate,
+          });
+        });
+
+        return {
+          totalRuns,
+          successfulRuns,
+          failedRuns,
+          averageTokensPerRun,
+          averageCostPerRun,
+          p95Latency,
+          averageLatency,
+          stepMetrics,
+        };
+      }
     },
     refetchInterval: 30000, // Refresh every 30 seconds
   });
@@ -120,8 +213,27 @@ export default function DashboardPage() {
       </div>
     );
 
-  const successRate = ((metrics.successfulRuns / metrics.totalRuns) * 100).toFixed(1);
-  const failureRate = ((metrics.failedRuns / metrics.totalRuns) * 100).toFixed(1);
+  const successRate =
+    metrics.totalRuns > 0 ? ((metrics.successfulRuns / metrics.totalRuns) * 100).toFixed(1) : '0.0';
+  const failureRate =
+    metrics.totalRuns > 0 ? ((metrics.failedRuns / metrics.totalRuns) * 100).toFixed(1) : '0.0';
+
+  // Calculate trend indicators (simplified - in production you'd compare with previous period)
+  const getTrendIndicator = (current: number, previous: number = 0) => {
+    if (previous === 0) return { direction: 'neutral', percentage: 0, color: 'text-gray-500' };
+    const change = ((current - previous) / previous) * 100;
+    if (change > 0)
+      return { direction: 'up', percentage: Math.abs(change).toFixed(1), color: 'text-green-500' };
+    if (change < 0)
+      return { direction: 'down', percentage: Math.abs(change).toFixed(1), color: 'text-red-500' };
+    return { direction: 'neutral', percentage: 0, color: 'text-gray-500' };
+  };
+
+  // For demo purposes, we'll show neutral trends since we don't have historical data
+  const totalRunsTrend = { direction: 'neutral', percentage: 0, color: 'text-gray-500' };
+  const successRateTrend = { direction: 'neutral', percentage: 0, color: 'text-gray-500' };
+  const tokensTrend = { direction: 'neutral', percentage: 0, color: 'text-gray-500' };
+  const costTrend = { direction: 'neutral', percentage: 0, color: 'text-gray-500' };
 
   return (
     <div className="min-h-screen bg-background">
@@ -158,8 +270,20 @@ export default function DashboardPage() {
                 <p className="text-sm font-medium text-muted-foreground">Total Runs</p>
                 <p className="text-2xl font-bold text-foreground">{metrics.totalRuns}</p>
                 <div className="flex items-center mt-1">
-                  <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
-                  <span className="text-xs text-green-500">+12% from last period</span>
+                  {totalRunsTrend.direction === 'up' && (
+                    <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
+                  )}
+                  {totalRunsTrend.direction === 'down' && (
+                    <TrendingDown className="h-3 w-3 text-red-500 mr-1" />
+                  )}
+                  {totalRunsTrend.direction === 'neutral' && (
+                    <span className="h-3 w-3 mr-1">—</span>
+                  )}
+                  <span className={`text-xs ${totalRunsTrend.color}`}>
+                    {totalRunsTrend.direction === 'neutral'
+                      ? 'No change'
+                      : `${totalRunsTrend.direction === 'up' ? '+' : '-'}${totalRunsTrend.percentage}% from last period`}
+                  </span>
                 </div>
               </div>
               <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -177,8 +301,20 @@ export default function DashboardPage() {
                 <p className="text-sm font-medium text-muted-foreground">Success Rate</p>
                 <p className="text-2xl font-bold text-green-500">{successRate}%</p>
                 <div className="flex items-center mt-1">
-                  <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
-                  <span className="text-xs text-green-500">Excellent</span>
+                  {successRateTrend.direction === 'up' && (
+                    <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
+                  )}
+                  {successRateTrend.direction === 'down' && (
+                    <TrendingDown className="h-3 w-3 text-red-500 mr-1" />
+                  )}
+                  {successRateTrend.direction === 'neutral' && (
+                    <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
+                  )}
+                  <span className={`text-xs ${successRateTrend.color}`}>
+                    {successRateTrend.direction === 'neutral'
+                      ? 'Stable'
+                      : `${successRateTrend.direction === 'up' ? '+' : '-'}${successRateTrend.percentage}% from last period`}
+                  </span>
                 </div>
               </div>
               <div className="w-12 h-12 bg-green-500/10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -198,8 +334,18 @@ export default function DashboardPage() {
                   {metrics.averageTokensPerRun.toLocaleString()}
                 </p>
                 <div className="flex items-center mt-1">
-                  <TrendingDown className="h-3 w-3 text-green-500 mr-1" />
-                  <span className="text-xs text-green-500">-5% optimized</span>
+                  {tokensTrend.direction === 'up' && (
+                    <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
+                  )}
+                  {tokensTrend.direction === 'down' && (
+                    <TrendingDown className="h-3 w-3 text-green-500 mr-1" />
+                  )}
+                  {tokensTrend.direction === 'neutral' && <span className="h-3 w-3 mr-1">—</span>}
+                  <span className={`text-xs ${tokensTrend.color}`}>
+                    {tokensTrend.direction === 'neutral'
+                      ? 'Stable'
+                      : `${tokensTrend.direction === 'up' ? '+' : '-'}${tokensTrend.percentage}% from last period`}
+                  </span>
                 </div>
               </div>
               <div className="w-12 h-12 bg-purple-500/10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -219,8 +365,20 @@ export default function DashboardPage() {
                   ${metrics.averageCostPerRun.toFixed(4)}
                 </p>
                 <div className="flex items-center mt-1">
-                  <DollarSign className="h-3 w-3 text-green-500 mr-1" />
-                  <span className="text-xs text-green-500">Cost efficient</span>
+                  {costTrend.direction === 'up' && (
+                    <TrendingUp className="h-3 w-3 text-red-500 mr-1" />
+                  )}
+                  {costTrend.direction === 'down' && (
+                    <TrendingDown className="h-3 w-3 text-green-500 mr-1" />
+                  )}
+                  {costTrend.direction === 'neutral' && (
+                    <DollarSign className="h-3 w-3 text-green-500 mr-1" />
+                  )}
+                  <span className={`text-xs ${costTrend.color}`}>
+                    {costTrend.direction === 'neutral'
+                      ? 'Cost efficient'
+                      : `${costTrend.direction === 'up' ? '+' : '-'}${costTrend.percentage}% from last period`}
+                  </span>
                 </div>
               </div>
               <div className="w-12 h-12 bg-yellow-500/10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
