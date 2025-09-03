@@ -47,6 +47,25 @@ export default function WorkflowsPage() {
     },
   });
 
+  const startRunMutation = useMutation({
+    mutationFn: async (workflowId: string) => {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE || 'https://agent-lab-production.up.railway.app'}/runs/${workflowId}/start`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ test: 'data' }),
+        },
+      );
+      if (!response.ok) throw new Error('Failed to start run');
+      return response.json();
+    },
+    onSuccess: () => {
+      // Show success message or redirect to runs page
+      window.location.href = '/runs';
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     createMutation.mutate(formData);
@@ -165,13 +184,13 @@ export default function WorkflowsPage() {
                   </div>
                   <button
                     onClick={() => {
-                      // TODO: Start run
-                      console.log('Start run for', workflow.id);
+                      startRunMutation.mutate(workflow.id);
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition-colors"
+                    disabled={startRunMutation.isPending}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 disabled:opacity-50 transition-colors"
                   >
                     <Play className="h-4 w-4" />
-                    Run
+                    {startRunMutation.isPending ? 'Starting...' : 'Run'}
                   </button>
                 </div>
               </div>
