@@ -7,7 +7,6 @@ coverage/
 .env*
 .gitignore
 eslint.config.mjs
-tsconfig.json
 drizzle.config.ts
 apps/ui/node_modules/
 apps/ui/.next/
