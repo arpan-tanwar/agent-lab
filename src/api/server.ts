@@ -57,29 +57,55 @@ const UpsertWorkflowSchema = z.object({
 });
 
 app.post('/workflows', async (c) => {
-  const body = await c.req.json();
-  const parsed = UpsertWorkflowSchema.parse(body);
+  try {
+    const body = await c.req.json();
+    const parsed = UpsertWorkflowSchema.parse(body);
 
-  let workflowId = parsed.id;
-  if (!workflowId) {
-    const [w] = await db
-      .insert(workflows)
-      .values({ name: parsed.name, version: parsed.version })
-      .returning();
-    workflowId = w.id;
-  } else {
-    await db
-      .update(workflows)
-      .set({ name: parsed.name, version: parsed.version })
-      .where(eq(workflows.id, workflowId));
-    await db.delete(stepsTable).where(eq(stepsTable.workflowId, workflowId));
+    let workflowId = parsed.id;
+    if (!workflowId) {
+      const [w] = await db
+        .insert(workflows)
+        .values({ name: parsed.name, version: parsed.version })
+        .returning();
+      workflowId = w.id;
+    } else {
+      await db
+        .update(workflows)
+        .set({ name: parsed.name, version: parsed.version })
+        .where(eq(workflows.id, workflowId));
+      await db.delete(stepsTable).where(eq(stepsTable.workflowId, workflowId));
+    }
+
+    if (parsed.steps.length) {
+      await db.insert(stepsTable).values(parsed.steps.map((s) => ({ ...s, workflowId })));
+    }
+
+    return c.json({ workflowId });
+  } catch (error) {
+    const reqId = c.get('requestId');
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+
+    baseLogger.error({ reqId, error: errorMessage, stack: errorStack }, 'Error creating workflow');
+
+    if (errorMessage.includes('relation "workflows" does not exist')) {
+      return c.json(
+        {
+          error: 'Database not initialized. Please run database migration first.',
+          code: 'DATABASE_NOT_INITIALIZED',
+        },
+        500,
+      );
+    }
+
+    return c.json(
+      {
+        error: 'Failed to create workflow',
+        code: 'WORKFLOW_CREATION_FAILED',
+      },
+      500,
+    );
   }
-
-  if (parsed.steps.length) {
-    await db.insert(stepsTable).values(parsed.steps.map((s) => ({ ...s, workflowId })));
-  }
-
-  return c.json({ workflowId });
 });
 
 app.post('/runs/:workflowId/start', async (c) => {
@@ -207,8 +233,34 @@ app.get('/runs/:id', async (c) => {
 });
 
 app.get('/workflows', async (c) => {
-  const rows = await db.select().from(workflows);
-  return c.json({ workflows: rows });
+  try {
+    const rows = await db.select().from(workflows);
+    return c.json({ workflows: rows });
+  } catch (error) {
+    const reqId = c.get('requestId');
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+
+    baseLogger.error({ reqId, error: errorMessage, stack: errorStack }, 'Error fetching workflows');
+
+    if (errorMessage.includes('relation "workflows" does not exist')) {
+      return c.json(
+        {
+          error: 'Database not initialized. Please run database migration first.',
+          code: 'DATABASE_NOT_INITIALIZED',
+        },
+        500,
+      );
+    }
+
+    return c.json(
+      {
+        error: 'Failed to fetch workflows',
+        code: 'WORKFLOW_FETCH_FAILED',
+      },
+      500,
+    );
+  }
 });
 
 // Retry failed run endpoint

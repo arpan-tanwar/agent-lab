@@ -4,19 +4,30 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { workflowsApi, type Workflow } from '@/lib/api';
 import { Header } from '@/components/header';
-import { Plus, Play, Workflow as WorkflowIcon } from 'lucide-react';
+import { Plus, Play, Workflow as WorkflowIcon, XCircle, RotateCcw } from 'lucide-react';
 
 export default function WorkflowsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [formData, setFormData] = useState({ name: '', version: 1 });
   const queryClient = useQueryClient();
 
-  const { data: workflows, isLoading } = useQuery({
+  const {
+    data: workflows,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['workflows'],
     queryFn: async () => {
-      const res = await workflowsApi.list();
-      return res.data.workflows;
+      try {
+        const res = await workflowsApi.list();
+        return res.data.workflows;
+      } catch (error) {
+        console.error('Failed to fetch workflows:', error);
+        throw error;
+      }
     },
+    retry: 3,
+    retryDelay: 1000,
   });
 
   const createMutation = useMutation({
@@ -105,6 +116,23 @@ export default function WorkflowsPage() {
             {[...Array(3)].map((_, i) => (
               <div key={i} className="h-24 bg-muted rounded-xl animate-pulse"></div>
             ))}
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-destructive/10 text-destructive mx-auto mb-4">
+              <XCircle className="h-8 w-8" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Failed to load workflows</h3>
+            <p className="text-muted-foreground mb-4">
+              {(error as any)?.response?.data?.error || 'Unable to connect to the server'}
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Retry
+            </button>
           </div>
         ) : workflows && workflows.length > 0 ? (
           <div className="grid gap-4">
