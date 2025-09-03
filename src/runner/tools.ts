@@ -7,19 +7,19 @@ export interface ToolConfig {
   url?: string;
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   headers?: Record<string, string>;
-  body?: any;
+  body?: unknown;
   timeout?: number;
 }
 
 export interface ToolResponse {
-  data: any;
+  data: unknown;
   status: number;
   headers: Record<string, string>;
   duration: number;
   cost: number; // For API calls that might have costs
 }
 
-export type ToolHandler = (config: ToolConfig, input?: any) => Promise<ToolResponse>;
+export type ToolHandler = (config: ToolConfig, input?: unknown) => Promise<ToolResponse>;
 
 export class ToolRegistry {
   private tools: Map<string, ToolHandler> = new Map();
@@ -33,7 +33,7 @@ export class ToolRegistry {
     logger.info({ toolName: name }, 'Tool registered');
   }
 
-  async executeTool(toolName: string, config: ToolConfig, input?: any): Promise<ToolResponse> {
+  async executeTool(toolName: string, config: ToolConfig, input?: unknown): Promise<ToolResponse> {
     const handler = this.tools.get(toolName);
     if (!handler) {
       throw new Error(
@@ -101,8 +101,8 @@ export class ToolRegistry {
     this.registerTool('process', this.dataProcessingHandler.bind(this));
   }
 
-  private async httpRequestHandler(config: ToolConfig, input?: any): Promise<ToolResponse> {
-    const url = config.url || input?.url;
+  private async httpRequestHandler(config: ToolConfig, input?: unknown): Promise<ToolResponse> {
+    const url = config.url || ((input as Record<string, unknown>)?.url as string);
     if (!url) {
       throw new Error('URL is required for HTTP requests');
     }
@@ -113,7 +113,7 @@ export class ToolRegistry {
       ...config.headers,
     };
 
-    const body = config.body || input?.body;
+    const body = config.body || (input as Record<string, unknown>)?.body;
 
     const controller = new AbortController();
     const timeout = config.timeout || 30000; // 30 seconds default
@@ -134,7 +134,7 @@ export class ToolRegistry {
       return {
         data: responseData,
         status: response.status,
-        headers: Object.fromEntries(response.headers as any),
+        headers: Object.fromEntries(response.headers as unknown as [string, string][]),
         duration: 0, // Will be set by the caller
         cost: 0, // HTTP requests are typically free
       };
@@ -144,9 +144,9 @@ export class ToolRegistry {
     }
   }
 
-  private async emailHandler(config: ToolConfig, input?: any): Promise<ToolResponse> {
+  private async emailHandler(config: ToolConfig, input?: unknown): Promise<ToolResponse> {
     // Mock email sending - in production you'd integrate with SendGrid, SES, etc.
-    const { to, subject, body } = input || {};
+    const { to, subject, body } = (input as Record<string, unknown>) || {};
 
     if (!to || !subject || !body) {
       throw new Error('Email requires: to, subject, body');
@@ -166,9 +166,9 @@ export class ToolRegistry {
     };
   }
 
-  private async slackHandler(config: ToolConfig, input?: any): Promise<ToolResponse> {
+  private async slackHandler(config: ToolConfig, input?: unknown): Promise<ToolResponse> {
     // Mock Slack notification - in production you'd use Slack Web API
-    const { channel, message } = input || {};
+    const { channel, message } = (input as Record<string, unknown>) || {};
 
     if (!channel || !message) {
       throw new Error('Slack requires: channel, message');
@@ -188,9 +188,9 @@ export class ToolRegistry {
     };
   }
 
-  private async crmHandler(config: ToolConfig, input?: any): Promise<ToolResponse> {
+  private async crmHandler(config: ToolConfig, input?: unknown): Promise<ToolResponse> {
     // Mock CRM integration - in production you'd integrate with Salesforce, HubSpot, etc.
-    const { action, data } = input || {};
+    const { action, data } = (input as Record<string, unknown>) || {};
 
     if (!action) {
       throw new Error('CRM requires: action');
@@ -212,9 +212,9 @@ export class ToolRegistry {
     };
   }
 
-  private async dataProcessingHandler(config: ToolConfig, input?: any): Promise<ToolResponse> {
+  private async dataProcessingHandler(config: ToolConfig, input?: unknown): Promise<ToolResponse> {
     // Mock data processing - in production you'd have actual data processing logic
-    const { operation, data } = input || {};
+    const { operation, data } = (input as Record<string, unknown>) || {};
 
     if (!operation) {
       throw new Error('Data processing requires: operation');

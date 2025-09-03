@@ -1,7 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import {
-  workflows,
   steps as stepsTable,
   runs as runsTable,
   artifacts as artifactsTable,
@@ -17,14 +16,14 @@ export interface Step {
   workflowId: string;
   type: string;
   order: number;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
 }
 
 export interface RunContext {
   runId: string;
   workflowId: string;
-  input?: any;
-  stepResults: Map<number, any>;
+  input?: unknown;
+  stepResults: Map<number, unknown>;
 }
 
 export class WorkflowExecutor {
@@ -109,7 +108,7 @@ export class WorkflowExecutor {
     }
   }
 
-  private async executeStep(step: Step, context: RunContext): Promise<any> {
+  private async executeStep(step: Step, context: RunContext): Promise<unknown> {
     const startTime = Date.now();
     const stepId = step.id;
 
@@ -127,28 +126,32 @@ export class WorkflowExecutor {
     const inputData = this.prepareStepInput(step, context);
     await this.createArtifact(context.runId, stepId, 'input', inputData, 'running', startTime);
 
-    let result: any;
-    let metrics: any = {};
+    let result: unknown;
+    let metrics: Record<string, unknown> = {};
 
     try {
       switch (step.type) {
-        case 'llm':
+        case 'llm': {
           result = await this.executeLLMStep(step, inputData);
+          const llmResult = result as Record<string, unknown>;
           metrics = {
-            tokens: result.tokens,
-            cost: result.cost,
-            model: result.model,
+            tokens: llmResult.tokens,
+            cost: llmResult.cost,
+            model: llmResult.model,
           };
           break;
+        }
 
-        case 'tool':
+        case 'tool': {
           result = await this.executeToolStep(step, inputData);
+          const toolResult = result as Record<string, unknown>;
           metrics = {
-            status: result.status,
-            cost: result.cost,
-            duration: result.duration,
+            status: toolResult.status,
+            cost: toolResult.cost,
+            duration: toolResult.duration,
           };
           break;
+        }
 
         default:
           throw new Error(`Unknown step type: ${step.type}`);
@@ -205,7 +208,7 @@ export class WorkflowExecutor {
     }
   }
 
-  private prepareStepInput(step: Step, context: RunContext): any {
+  private prepareStepInput(step: Step, context: RunContext): unknown {
     // For the first step, use the run input
     if (step.order === 0) {
       return context.input;
@@ -220,12 +223,15 @@ export class WorkflowExecutor {
     return context.input;
   }
 
-  private async executeLLMStep(step: Step, input: any): Promise<any> {
+  private async executeLLMStep(step: Step, input: unknown): Promise<unknown> {
     const config: LLMConfig = {
-      prompt: step.config.prompt || step.config.name || 'Process the following input:',
-      model: step.config.model,
-      temperature: step.config.temperature,
-      maxTokens: step.config.maxTokens,
+      prompt:
+        (step.config.prompt as string) ||
+        (step.config.name as string) ||
+        'Process the following input:',
+      model: step.config.model as string,
+      temperature: step.config.temperature as number,
+      maxTokens: step.config.maxTokens as number,
     };
 
     await geminiProvider.validateConfig(config);
@@ -242,19 +248,19 @@ export class WorkflowExecutor {
     }
   }
 
-  private async executeToolStep(step: Step, input: any): Promise<any> {
-    const toolName = step.config.name || step.config.tool;
+  private async executeToolStep(step: Step, input: unknown): Promise<unknown> {
+    const toolName = (step.config.name as string) || (step.config.tool as string);
     if (!toolName) {
       throw new Error('Tool name is required for tool steps');
     }
 
     const config: ToolConfig = {
       name: toolName,
-      url: step.config.url,
-      method: step.config.method,
-      headers: step.config.headers,
-      body: step.config.body,
-      timeout: step.config.timeout,
+      url: step.config.url as string,
+      method: step.config.method as 'GET' | 'POST' | 'PUT' | 'DELETE',
+      headers: step.config.headers as Record<string, string>,
+      body: step.config.body as unknown,
+      timeout: step.config.timeout as number,
     };
 
     const result = await toolRegistry.executeTool(toolName, config, input);
@@ -265,11 +271,11 @@ export class WorkflowExecutor {
     runId: string,
     stepId: number,
     kind: 'input' | 'output',
-    data: any,
+    data: unknown,
     status: 'pending' | 'running' | 'completed' | 'failed',
     startedAt: number,
     finishedAt?: number,
-    metrics?: any,
+    metrics?: Record<string, unknown>,
     error?: string,
   ): Promise<void> {
     await db.insert(artifactsTable).values({
@@ -285,19 +291,19 @@ export class WorkflowExecutor {
     });
   }
 
-  private async calculateRunMetrics(runId: string): Promise<any> {
+  private async calculateRunMetrics(runId: string): Promise<Record<string, unknown>> {
     const artifacts = await db.select().from(artifactsTable).where(eq(artifactsTable.runId, runId));
 
     let totalTokens = 0;
     let totalCost = 0;
-    const perStep: any[] = [];
+    const perStep: Record<string, unknown>[] = [];
 
     for (const artifact of artifacts) {
       if (artifact.kind === 'output' && artifact.metrics) {
-        const metrics = artifact.metrics as any;
+        const metrics = artifact.metrics as Record<string, unknown>;
 
-        if (metrics.tokens) totalTokens += metrics.tokens;
-        if (metrics.cost) totalCost += metrics.cost;
+        if (metrics.tokens) totalTokens += metrics.tokens as number;
+        if (metrics.cost) totalCost += metrics.cost as number;
 
         perStep.push({
           stepKey: `step_${artifact.stepId}`,
@@ -317,7 +323,7 @@ export class WorkflowExecutor {
     };
   }
 
-  private async completeRun(runId: string, metrics: any): Promise<void> {
+  private async completeRun(runId: string, metrics: Record<string, unknown>): Promise<void> {
     await db
       .update(runsTable)
       .set({

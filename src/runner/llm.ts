@@ -31,7 +31,7 @@ export class GeminiProvider {
     this.model = 'gemini-2.0-flash'; // Free model
   }
 
-  async callLLM(config: LLMConfig, input?: any): Promise<LLMResponse> {
+  async callLLM(config: LLMConfig, input?: unknown): Promise<LLMResponse> {
     const startTime = Date.now();
 
     try {
