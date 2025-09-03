@@ -65,15 +65,20 @@ export default function DashboardPage() {
 
         // Calculate metrics from runs data
         const totalRuns = runs.length;
-        const successfulRuns = runs.filter((run: any) => run.status === 'completed').length;
-        const failedRuns = runs.filter((run: any) => run.status === 'failed').length;
+        const successfulRuns = runs.filter(
+          (run: { status: string }) => run.status === 'completed',
+        ).length;
+        const failedRuns = runs.filter((run: { status: string }) => run.status === 'failed').length;
 
-        const runsWithMetrics = runs.filter((run: any) => run.metrics && run.metrics.totalTokens);
+        const runsWithMetrics = runs.filter(
+          (run: { metrics?: { totalTokens?: number } }) => run.metrics && run.metrics.totalTokens,
+        );
         const averageTokensPerRun =
           runsWithMetrics.length > 0
             ? Math.round(
                 runsWithMetrics.reduce(
-                  (sum: number, run: any) => sum + (run.metrics.totalTokens || 0),
+                  (sum: number, run: { metrics: { totalTokens?: number } }) =>
+                    sum + (run.metrics.totalTokens || 0),
                   0,
                 ) / runsWithMetrics.length,
               )
@@ -82,14 +87,15 @@ export default function DashboardPage() {
         const averageCostPerRun =
           runsWithMetrics.length > 0
             ? runsWithMetrics.reduce(
-                (sum: number, run: any) => sum + (run.metrics.costEstimateUsd || 0),
+                (sum: number, run: { metrics: { costEstimateUsd?: number } }) =>
+                  sum + (run.metrics.costEstimateUsd || 0),
                 0,
               ) / runsWithMetrics.length
             : 0;
 
         const latencies = runs
-          .filter((run: any) => run.metrics && run.metrics.totalMs)
-          .map((run: any) => run.metrics.totalMs)
+          .filter((run: { metrics?: { totalMs?: number } }) => run.metrics && run.metrics.totalMs)
+          .map((run: { metrics: { totalMs: number } }) => run.metrics.totalMs)
           .sort((a: number, b: number) => a - b);
 
         const averageLatency =
@@ -113,27 +119,51 @@ export default function DashboardPage() {
         }> = [];
 
         // Group steps by type and calculate averages
-        const stepGroups: Record<string, any[]> = {};
-        runs.forEach((run: any) => {
-          if (run.timeline) {
-            run.timeline.forEach((step: any) => {
-              if (!stepGroups[step.type]) {
-                stepGroups[step.type] = [];
-              }
-              stepGroups[step.type].push(step);
-            });
-          }
-        });
+        const stepGroups: Record<
+          string,
+          Array<{
+            type: string;
+            status: string;
+            metrics?: { tokens?: number; cost_estimate?: number; ms?: number };
+          }>
+        > = {};
+        runs.forEach(
+          (run: {
+            timeline?: Array<{
+              type: string;
+              status: string;
+              metrics?: { tokens?: number; cost_estimate?: number; ms?: number };
+            }>;
+          }) => {
+            if (run.timeline) {
+              run.timeline.forEach(
+                (step: {
+                  type: string;
+                  status: string;
+                  metrics?: { tokens?: number; cost_estimate?: number; ms?: number };
+                }) => {
+                  if (!stepGroups[step.type]) {
+                    stepGroups[step.type] = [];
+                  }
+                  stepGroups[step.type].push(step);
+                },
+              );
+            }
+          },
+        );
 
         Object.entries(stepGroups).forEach(([stepName, steps]) => {
-          const completedSteps = steps.filter((step: any) => step.status === 'completed');
-          const failedSteps = steps.filter((step: any) => step.status === 'failed');
+          const completedSteps = steps.filter(
+            (step: { status: string }) => step.status === 'completed',
+          );
+          const failedSteps = steps.filter((step: { status: string }) => step.status === 'failed');
 
           const averageTokens =
             completedSteps.length > 0
               ? Math.round(
                   completedSteps.reduce(
-                    (sum: number, step: any) => sum + (step.metrics?.tokens || 0),
+                    (sum: number, step: { metrics?: { tokens?: number } }) =>
+                      sum + (step.metrics?.tokens || 0),
                     0,
                   ) / completedSteps.length,
                 )
@@ -142,13 +172,14 @@ export default function DashboardPage() {
           const averageCost =
             completedSteps.length > 0
               ? completedSteps.reduce(
-                  (sum: number, step: any) => sum + (step.metrics?.cost_estimate || 0),
+                  (sum: number, step: { metrics?: { cost_estimate?: number } }) =>
+                    sum + (step.metrics?.cost_estimate || 0),
                   0,
                 ) / completedSteps.length
               : 0;
 
           const stepLatencies = completedSteps
-            .map((step: any) => step.metrics?.ms || 0)
+            .map((step: { metrics?: { ms?: number } }) => step.metrics?.ms || 0)
             .filter((latency: number) => latency > 0)
             .sort((a: number, b: number) => a - b);
 
@@ -217,17 +248,6 @@ export default function DashboardPage() {
     metrics.totalRuns > 0 ? ((metrics.successfulRuns / metrics.totalRuns) * 100).toFixed(1) : '0.0';
   const failureRate =
     metrics.totalRuns > 0 ? ((metrics.failedRuns / metrics.totalRuns) * 100).toFixed(1) : '0.0';
-
-  // Calculate trend indicators (simplified - in production you'd compare with previous period)
-  const getTrendIndicator = (current: number, previous: number = 0) => {
-    if (previous === 0) return { direction: 'neutral', percentage: 0, color: 'text-gray-500' };
-    const change = ((current - previous) / previous) * 100;
-    if (change > 0)
-      return { direction: 'up', percentage: Math.abs(change).toFixed(1), color: 'text-green-500' };
-    if (change < 0)
-      return { direction: 'down', percentage: Math.abs(change).toFixed(1), color: 'text-red-500' };
-    return { direction: 'neutral', percentage: 0, color: 'text-gray-500' };
-  };
 
   // For demo purposes, we'll show neutral trends since we don't have historical data
   const totalRunsTrend = { direction: 'neutral', percentage: 0, color: 'text-gray-500' };
