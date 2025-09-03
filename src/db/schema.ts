@@ -26,6 +26,11 @@ export const runs = pgTable('runs', {
   startedAt: timestamp('started_at', { mode: 'date' }),
   finishedAt: timestamp('finished_at', { mode: 'date' }),
   metrics: jsonb('metrics').notNull().default({}),
+  input: jsonb('input'),
+  failureReason: varchar('failure_reason', { length: 512 }),
+  retryCount: integer('retry_count').notNull().default(0),
+  maxRetries: integer('max_retries').notNull().default(3),
+  lastError: jsonb('last_error'),
 });
 
 export const artifacts = pgTable('artifacts', {
@@ -38,6 +43,12 @@ export const artifacts = pgTable('artifacts', {
     .references(() => steps.id, { onDelete: 'cascade' }),
   kind: varchar('kind', { length: 64 }).notNull(),
   data: jsonb('data').notNull().default({}),
+  metrics: jsonb('metrics').notNull().default({}),
+  status: varchar('status', { length: 32 }).notNull().default('pending'),
+  startedAt: timestamp('started_at', { mode: 'date' }),
+  finishedAt: timestamp('finished_at', { mode: 'date' }),
+  error: jsonb('error'),
+  retryCount: integer('retry_count').notNull().default(0),
 });
 
 export const workflowsRelations = relations(workflows, ({ many }) => ({

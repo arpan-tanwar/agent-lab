@@ -14,6 +14,8 @@ import {
   artifacts as artifactsTable,
 } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
+import { withRetry, createRetryLogger } from '../utils/retry.js';
+import { MetricsCollector } from '../utils/metrics.js';
 
 const baseLogger = pino({ level: process.env.LOG_LEVEL || 'info' });
 
@@ -90,34 +92,215 @@ app.post('/runs/:workflowId/start', async (c) => {
   return c.json({ runId: run.id });
 });
 
+// Enhanced endpoint for automation tools (Zapier/n8n)
+app.post('/automation/lead', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { subject, from, body: emailBody } = body;
+
+    if (!subject || !from || !emailBody) {
+      return c.json({ error: 'Missing required fields: subject, from, body' }, 400);
+    }
+
+    // Find or create the lead workflow
+    let leadWorkflow = (
+      await db.select().from(workflows).where(eq(workflows.name, 'lead-triage')).limit(1)
+    )[0];
+
+    if (!leadWorkflow) {
+      // Create the lead workflow if it doesn't exist
+      const [newWorkflow] = await db
+        .insert(workflows)
+        .values({ name: 'lead-triage', version: 1 })
+        .returning();
+      leadWorkflow = newWorkflow;
+
+      // Add the workflow steps
+      const steps = [
+        { type: 'llm', order: 0, config: { name: 'parseEmail' } },
+        { type: 'tool', order: 1, config: { name: 'enrichCompany' } },
+        { type: 'tool', order: 2, config: { name: 'scoreLead' } },
+        { type: 'tool', order: 3, config: { name: 'createCRMRecord' } },
+        { type: 'tool', order: 4, config: { name: 'notifySlack' } },
+      ];
+
+      await db.insert(stepsTable).values(steps.map((s) => ({ ...s, workflowId: leadWorkflow.id })));
+    }
+
+    // Start the workflow run
+    const [run] = await db
+      .insert(runsTable)
+      .values({
+        workflowId: leadWorkflow.id,
+        status: 'running',
+        startedAt: new Date(),
+        metrics: {},
+        input: { subject, from, body: emailBody },
+      })
+      .returning();
+
+    return c.json({
+      success: true,
+      runId: run.id,
+      workflowId: leadWorkflow.id,
+      message: 'Lead processing started successfully',
+    });
+  } catch (error) {
+    baseLogger.error({ error }, 'Failed to process lead automation');
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
 app.get('/runs/:id', async (c) => {
   const { id } = c.req.param();
-  const run = (await db.select().from(runsTable).where(eq(runsTable.id, id)).limit(1))[0];
-  if (!run) return c.json({ error: 'not found' }, 404);
-  const stepRows = await db
-    .select()
-    .from(stepsTable)
-    .where(eq(stepsTable.workflowId, run.workflowId));
-  const artifactRows = await db.select().from(artifactsTable).where(eq(artifactsTable.runId, id));
+  const requestId = c.get('requestId');
+  const retryLogger = createRetryLogger(requestId);
 
-  const timeline = stepRows
-    .map((s) => ({
-      stepId: s.id,
-      type: s.type,
-      order: s.order,
-      status: 'completed',
-      metrics: { tokens: 0, ms: 0, cost_estimate: 0 },
-      inputs: artifactRows.find((a) => a.stepId === s.id && a.kind === 'input')?.data ?? null,
-      outputs: artifactRows.find((a) => a.stepId === s.id && a.kind === 'output')?.data ?? null,
-    }))
-    .sort((a, b) => a.order - b.order);
+  try {
+    const run = (await db.select().from(runsTable).where(eq(runsTable.id, id)).limit(1))[0];
+    if (!run) {
+      retryLogger.warn('Run not found', { runId: id });
+      return c.json({ error: 'not found' }, 404);
+    }
 
-  return c.json({ run, timeline });
+    const stepRows = await db
+      .select()
+      .from(stepsTable)
+      .where(eq(stepsTable.workflowId, run.workflowId));
+    const artifactRows = await db.select().from(artifactsTable).where(eq(artifactsTable.runId, id));
+
+    const timeline = stepRows
+      .map((s) => {
+        const inputArtifact = artifactRows.find((a) => a.stepId === s.id && a.kind === 'input');
+        const outputArtifact = artifactRows.find((a) => a.stepId === s.id && a.kind === 'output');
+
+        return {
+          stepId: s.id,
+          type: s.type,
+          order: s.order,
+          status: outputArtifact?.status || 'pending',
+          metrics: outputArtifact?.metrics || { tokens: 0, ms: 0, cost_estimate: 0 },
+          inputs: inputArtifact?.data ?? null,
+          outputs: outputArtifact?.data ?? null,
+          error: outputArtifact?.error ?? null,
+          retryCount: outputArtifact?.retryCount || 0,
+          startedAt: outputArtifact?.startedAt,
+          finishedAt: outputArtifact?.finishedAt,
+        };
+      })
+      .sort((a, b) => a.order - b.order);
+
+    retryLogger.info('Run retrieved successfully', {
+      runId: id,
+      status: run.status,
+      stepCount: timeline.length,
+      hasErrors: timeline.some((t) => t.error),
+    });
+
+    return c.json({ run, timeline });
+  } catch (error) {
+    retryLogger.error('Failed to retrieve run', {
+      runId: id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return c.json({ error: 'Internal server error' }, 500);
+  }
 });
 
 app.get('/workflows', async (c) => {
   const rows = await db.select().from(workflows);
   return c.json({ workflows: rows });
+});
+
+// Retry failed run endpoint
+app.post('/runs/:id/retry', async (c) => {
+  const { id } = c.req.param();
+  const requestId = c.get('requestId');
+  const retryLogger = createRetryLogger(requestId);
+
+  try {
+    const run = (await db.select().from(runsTable).where(eq(runsTable.id, id)).limit(1))[0];
+    if (!run) {
+      retryLogger.warn('Run not found for retry', { runId: id });
+      return c.json({ error: 'Run not found' }, 404);
+    }
+
+    if (run.retryCount >= run.maxRetries) {
+      retryLogger.warn('Max retries exceeded', {
+        runId: id,
+        retryCount: run.retryCount,
+        maxRetries: run.maxRetries,
+      });
+      return c.json({ error: 'Maximum retries exceeded' }, 400);
+    }
+
+    // Create new run with incremented retry count
+    const [newRun] = await db
+      .insert(runsTable)
+      .values({
+        workflowId: run.workflowId,
+        status: 'running',
+        startedAt: new Date(),
+        metrics: {},
+        input: run.input,
+        retryCount: run.retryCount + 1,
+        maxRetries: run.maxRetries,
+        failureReason: null,
+        lastError: null,
+      })
+      .returning();
+
+    retryLogger.info('Run retry initiated', {
+      originalRunId: id,
+      newRunId: newRun.id,
+      retryCount: newRun.retryCount,
+      maxRetries: newRun.maxRetries,
+    });
+
+    return c.json({
+      success: true,
+      runId: newRun.id,
+      retryCount: newRun.retryCount,
+      message: 'Run retry started successfully',
+    });
+  } catch (error) {
+    retryLogger.error('Failed to retry run', {
+      runId: id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// Get failed runs for dead letter queue
+app.get('/runs/failed', async (c) => {
+  const requestId = c.get('requestId');
+  const retryLogger = createRetryLogger(requestId);
+
+  try {
+    const failedRuns = await db.select().from(runsTable).where(eq(runsTable.status, 'failed'));
+
+    retryLogger.info('Retrieved failed runs', { count: failedRuns.length });
+
+    return c.json({
+      failedRuns: failedRuns.map((run) => ({
+        id: run.id,
+        workflowId: run.workflowId,
+        status: run.status,
+        startedAt: run.startedAt,
+        finishedAt: run.finishedAt,
+        failureReason: run.failureReason,
+        retryCount: run.retryCount,
+        maxRetries: run.maxRetries,
+        lastError: run.lastError,
+      })),
+    });
+  } catch (error) {
+    retryLogger.error('Failed to retrieve failed runs', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return c.json({ error: 'Internal server error' }, 500);
+  }
 });
 
 export default app;

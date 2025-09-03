@@ -1,0 +1,39 @@
+Email Automation Flow
+=====================
+
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Gmail         │    │  Zapier/n8n      │    │  Agent Lab API  │    │   Slack         │
+│   (Leads Label) │    │  (Automation)    │    │  (Processing)   │    │  (Notification) │
+└─────────────────┘    └──────────────────┘    └─────────────────┘    └─────────────────┘
+         │                        │                        │                        │
+         │ 1. New email           │                        │                        │
+         │    with "Leads"        │                        │                        │
+         │    label arrives       │                        │                        │
+         ├───────────────────────►│                        │                        │
+         │                        │                        │                        │
+         │                        │ 2. Extract email       │                        │
+         │                        │    data (subject,      │                        │
+         │                        │    from, body)         │                        │
+         │                        ├───────────────────────►│                        │
+         │                        │                        │                        │
+         │                        │                        │ 3. Process through     │
+         │                        │                        │    lead workflow:      │
+         │                        │                        │    - Parse email       │
+         │                        │                        │    - Enrich company    │
+         │                        │                        │    - Score lead        │
+         │                        │                        │    - Create CRM record │
+         │                        │                        │    - Notify Slack      │
+         │                        │                        ├───────────────────────►│
+         │                        │                        │                        │
+         │                        │                        │ 4. Return run ID      │
+         │                        │                        │    and status          │
+         │                        │◄───────────────────────┤                        │
+         │                        │                        │                        │
+         │                        │ 5. Optional: Send      │                        │
+         │                        │    notification to     │                        │
+         │                        │    Slack channel       │                        │
+         │                        ├───────────────────────►│                        │
+         │                        │                        │                        │
+         │                        │                        │                        │ 6. Team gets notified
+         │                        │                        │                        │    of new lead
+         │                        │                        │                        │

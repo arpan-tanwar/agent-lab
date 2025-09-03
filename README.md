@@ -35,7 +35,36 @@ pnpm dev
 
 ## Demo
 
-Placeholder for a 90-sec Loom link (to be added after initial demo).
+### 🚀 Live Application
+
+- **Frontend**: [Your Vercel URL] (Next.js dashboard)
+- **API**: https://agent-lab-production.up.railway.app
+
+### 📧 Email Automation Setup
+
+**Quick Setup (6 steps, <15 minutes):**
+
+1. **Choose your tool**: [Zapier](https://zapier.com) (easier) or [n8n](https://n8n.io) (more flexible)
+2. **Set up Gmail trigger**: Monitor emails with "Leads" label
+3. **Configure webhook**: POST to `https://agent-lab-production.up.railway.app/automation/lead`
+4. **Map email data**: Send `{subject, from, body}` to API
+5. **Test**: Send yourself a test email with "Leads" label
+6. **Activate**: Your automation is live!
+
+**📖 Detailed Guide**: See [AUTOMATION_SETUP.md](./AUTOMATION_SETUP.md) for complete setup instructions with screenshots.
+
+**🧪 Test the API**:
+
+```bash
+# Test automation endpoint
+curl -X POST https://agent-lab-production.up.railway.app/automation/lead \
+  -H "Content-Type: application/json" \
+  -d '{
+    "subject": "Interested in pricing",
+    "from": "lead@company.com",
+    "body": "Hi, we are interested in your product pricing."
+  }'
+```
 
 ### API demo (curl)
 
