@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { runsApi, type Run } from '@/lib/api';
+import { type Run } from '@/lib/api';
 import Link from 'next/link';
 
 export default function RunsPage() {
