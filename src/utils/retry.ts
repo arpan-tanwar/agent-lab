@@ -2,18 +2,25 @@ import pino from 'pino';
 
 const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
 
+interface ErrorWithStatus {
+  status?: number;
+  response?: {
+    status?: number;
+  };
+}
+
 export interface RetryOptions {
   maxRetries?: number;
   baseDelay?: number;
   maxDelay?: number;
   jitter?: boolean;
-  retryCondition?: (error: any) => boolean;
+  retryCondition?: (error: unknown) => boolean;
 }
 
 export class RetryError extends Error {
   constructor(
     message: string,
-    public originalError: any,
+    public originalError: unknown,
     public attempt: number,
     public maxRetries: number,
   ) {
@@ -32,14 +39,15 @@ export async function withRetry<T>(
     baseDelay = 1000,
     maxDelay = 30000,
     jitter = true,
-    retryCondition = (error) => {
+    retryCondition = (error: unknown) => {
       // Retry on 429 (rate limit) and 5xx errors
-      const status = error?.status || error?.response?.status;
-      return status === 429 || (status >= 500 && status < 600);
+      const errorWithStatus = error as ErrorWithStatus;
+      const status = errorWithStatus?.status || errorWithStatus?.response?.status;
+      return status === 429 || (status !== undefined && status >= 500 && status < 600);
     },
   } = options;
 
-  let lastError: any;
+  let lastError: unknown;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -66,13 +74,14 @@ export async function withRetry<T>(
 
       // Don't retry if we've exhausted attempts or condition says not to
       if (attempt === maxRetries || !retryCondition(error)) {
+        const errorWithStatus = error as ErrorWithStatus;
         logger.error(
           {
             requestId,
             attempt: attempt + 1,
             maxRetries: maxRetries + 1,
             error: error instanceof Error ? error.message : String(error),
-            status: error?.status || error?.response?.status,
+            status: errorWithStatus?.status || errorWithStatus?.response?.status,
           },
           'Retry failed - giving up',
         );
@@ -85,6 +94,7 @@ export async function withRetry<T>(
       const jitterAmount = jitter ? Math.random() * 0.1 * delay : 0;
       const finalDelay = Math.floor(delay + jitterAmount);
 
+      const errorWithStatus = error as ErrorWithStatus;
       logger.warn(
         {
           requestId,
@@ -92,7 +102,7 @@ export async function withRetry<T>(
           maxRetries: maxRetries + 1,
           delay: finalDelay,
           error: error instanceof Error ? error.message : String(error),
-          status: error?.status || error?.response?.status,
+          status: errorWithStatus?.status || errorWithStatus?.response?.status,
         },
         'Retry attempt failed - retrying',
       );
@@ -115,16 +125,16 @@ function sleep(ms: number): Promise<void> {
 
 export function createRetryLogger(requestId: string) {
   return {
-    info: (message: string, data?: any) => {
+    info: (message: string, data?: Record<string, unknown>) => {
       logger.info({ requestId, ...data }, message);
     },
-    warn: (message: string, data?: any) => {
+    warn: (message: string, data?: Record<string, unknown>) => {
       logger.warn({ requestId, ...data }, message);
     },
-    error: (message: string, data?: any) => {
+    error: (message: string, data?: Record<string, unknown>) => {
       logger.error({ requestId, ...data }, message);
     },
-    debug: (message: string, data?: any) => {
+    debug: (message: string, data?: Record<string, unknown>) => {
       logger.debug({ requestId, ...data }, message);
     },
   };

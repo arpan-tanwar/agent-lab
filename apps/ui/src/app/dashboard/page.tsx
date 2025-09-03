@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { runsApi } from '@/lib/api';
 
 interface DashboardMetrics {
   totalRuns: number;

@@ -13,7 +13,7 @@ export interface StepMetrics {
   tokens?: number;
   costUsd?: number;
   retryCount: number;
-  error?: any;
+  error?: unknown;
 }
 
 export interface RunMetrics {
@@ -101,7 +101,7 @@ export class MetricsCollector {
     );
   }
 
-  failStep(stepId: number, error: any, retryCount: number = 0) {
+  failStep(stepId: number, error: unknown, retryCount: number = 0) {
     const stepMetric = this.stepMetrics.get(stepId);
     if (!stepMetric) return;
 

@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+/* eslint-env node */
+
 // Test script to simulate a failed run for demonstration
 const API_BASE = 'https://agent-lab-production.up.railway.app';
 

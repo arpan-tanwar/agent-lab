@@ -14,8 +14,7 @@ import {
   artifacts as artifactsTable,
 } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
-import { withRetry, createRetryLogger } from '../utils/retry.js';
-import { MetricsCollector } from '../utils/metrics.js';
+import { createRetryLogger } from '../utils/retry.js';
 
 const baseLogger = pino({ level: process.env.LOG_LEVEL || 'info' });
 

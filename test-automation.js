@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+/* eslint-env node */
+
 // Test script for the automation API endpoint
 const API_BASE = 'https://agent-lab-production.up.railway.app';
 
